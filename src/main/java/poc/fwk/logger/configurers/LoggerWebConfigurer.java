@@ -3,32 +3,30 @@ package poc.fwk.logger.configurers;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.annotation.RestController;
 
-import lombok.RequiredArgsConstructor;
-
 @Configuration
 @Aspect
-@RequiredArgsConstructor
 @ConditionalOnClass(RestController.class)
-public class LoggerWebConfigurer {
+public class LoggerWebConfigurer extends LoggerBase {
 
 	@Autowired
-	private final LoggerAdvice loggerAdvice;
-
-	@Value("${poc.fwk.logger.auto.enabled:true}")
-	private boolean autoLoggerEnabled;
+	public LoggerWebConfigurer(LoggerAdvice loggerAdvice,
+			@Value("${poc.fwk.logger.auto.enabled:true}") boolean autoLoggerEnabled,
+			@Value("${poc.fwk.logger.auto.level:info}") String level) {
+		super(loggerAdvice, autoLoggerEnabled, Level.valueOf(level.toUpperCase()));
+	}
 
 	@Around("@within(org.springframework.web.bind.annotation.RestController)"
 			+ " && !@within(poc.fwk.logger.annotations.Logger)"
 			+ " && !@annotation(poc.fwk.logger.annotations.Logger)")
-	Object wrapService(ProceedingJoinPoint joinPoint) throws Throwable {
-		if (autoLoggerEnabled) { return loggerAdvice.log(joinPoint); }
-		return joinPoint.proceed();
+	public Object interceptController(ProceedingJoinPoint joinPoint) throws Throwable {
+		return interceptJoinPoint(joinPoint);
 	}
 
 }

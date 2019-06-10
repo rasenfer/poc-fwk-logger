@@ -14,17 +14,43 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 import org.springframework.aop.aspectj.MethodInvocationProceedingJoinPoint;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.stereotype.Component;
+import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.core.annotation.Order;
 
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-@Component
 @Slf4j
-public class LoggerAdvice implements ApplicationContextAware {
+@RequiredArgsConstructor
+@Order(Integer.MAX_VALUE)
+public abstract class LoggerBase implements ApplicationContextAware {
+
+	private final boolean autoLoggerEnabled;
+
+	private final Level level;
+
+	@Setter
+	private ApplicationContext applicationContext;
+
+	protected Object interceptLoggin(ProceedingJoinPoint joinPoint) throws Throwable {
+		poc.fwk.logger.annotations.Logger logger = AnnotationUtils.findAnnotation(joinPoint.getTarget().getClass(),
+				poc.fwk.logger.annotations.Logger.class);
+		if (logger == null) {
+			MethodSignature signature = MethodSignature.class.cast(joinPoint.getSignature());
+			Method method = signature.getMethod();
+			logger = AnnotationUtils.findAnnotation(method, poc.fwk.logger.annotations.Logger.class);
+		}
+		if (logger.enabled()) { return log(joinPoint); }
+		return joinPoint.proceed();
+	}
+
+	protected Object interceptJoinPoint(ProceedingJoinPoint joinPoint) throws Throwable {
+		if (autoLoggerEnabled) { return log(joinPoint); }
+		return joinPoint.proceed();
+	}
 
 	private static final String MESSAGE = "%s\nINPUT: %s\nOUTPUT: %s\nTIME: %s";
 
@@ -37,15 +63,6 @@ public class LoggerAdvice implements ApplicationContextAware {
 	private static final String VALUE_JOIN = "=";
 
 	private static final String VALUE_SPLIT = ",\n";
-
-	private final Level level;
-
-	@Setter
-	private ApplicationContext applicationContext;
-
-	public LoggerAdvice(@Value("${poc.fwk.logger.auto.level:info}") String level) {
-		this.level = Level.valueOf(level.toUpperCase());
-	}
 
 	protected Object log(ProceedingJoinPoint joinPoint) throws Throwable {
 		long time = System.currentTimeMillis();
@@ -60,7 +77,7 @@ public class LoggerAdvice implements ApplicationContextAware {
 		return response;
 	}
 
-	private void error(ProceedingJoinPoint joinPoint, Throwable t, long time) {
+	protected void error(ProceedingJoinPoint joinPoint, Throwable t, long time) {
 		try {
 			Logger logger = LoggerFactory.getLogger(joinPoint.getTarget().getClass());
 			logger.error(getMessage(joinPoint, t.getClass().getName(), time), t);
@@ -69,7 +86,7 @@ public class LoggerAdvice implements ApplicationContextAware {
 		}
 	}
 
-	private void log(ProceedingJoinPoint joinPoint, Object response, long time) {
+	protected void log(ProceedingJoinPoint joinPoint, Object response, long time) {
 		try {
 			Logger logger = LoggerFactory.getLogger(joinPoint.getTarget().getClass());
 			switch (level) {
@@ -98,14 +115,14 @@ public class LoggerAdvice implements ApplicationContextAware {
 		}
 	}
 
-	private String getMessage(ProceedingJoinPoint joinPoint, Object response, long time) {
+	protected String getMessage(ProceedingJoinPoint joinPoint, Object response, long time) {
 		MethodSignature signature = MethodSignature.class.cast(joinPoint.getSignature());
 		return String.format(MESSAGE, signature.toString(),
 				getInput(signature, MethodInvocationProceedingJoinPoint.class.cast(joinPoint)),
 				getOutput(signature, response), Duration.ofMillis(time).toString());
 	}
 
-	private Object getInput(MethodSignature signature, MethodInvocationProceedingJoinPoint joinPoint) {
+	protected Object getInput(MethodSignature signature, MethodInvocationProceedingJoinPoint joinPoint) {
 		StringBuilder sb = new StringBuilder();
 		Object[] args = joinPoint.getArgs();
 		Object[] parameterNames = signature.getParameterNames();
@@ -125,7 +142,7 @@ public class LoggerAdvice implements ApplicationContextAware {
 		return sb.toString();
 	}
 
-	private String getOutput(MethodSignature signature, Object response) {
+	protected String getOutput(MethodSignature signature, Object response) {
 		String output;
 		Method method = signature.getMethod();
 		if (void.class.isAssignableFrom(method.getReturnType()) || Void.class.isAssignableFrom(method.getReturnType())) {
@@ -136,13 +153,13 @@ public class LoggerAdvice implements ApplicationContextAware {
 		return output;
 	}
 
-	private String toJsonStringObject(Object source) {
+	protected String toJsonStringObject(Object source) {
 		String stringValue = null;
 		if (source != null) {
-			if (Iterable.class.isInstance(source) || source.getClass().isArray()) {
-				stringValue = toJsonStringStream(Stream.of(source));
-			} else if (Closeable.class.isInstance(source)) {
+			if (Closeable.class.isInstance(source)) {
 				stringValue = source.getClass().getSimpleName();
+			} else if (Iterable.class.isInstance(source) || source.getClass().isArray()) {
+				stringValue = toJsonStringStream(Stream.of(source));
 			} else {
 				stringValue = ReflectionToStringBuilder.toString(source, ToStringStyle.JSON_STYLE);
 			}
@@ -152,7 +169,7 @@ public class LoggerAdvice implements ApplicationContextAware {
 		return stringValue;
 	}
 
-	private String toJsonStringStream(Stream<Object> stream) {
+	protected String toJsonStringStream(Stream<Object> stream) {
 		StringBuilder sb = new StringBuilder(LIST_OPEN);
 		stream.forEach(current -> {
 			sb.append(toJsonStringObject(current));
