@@ -1,4 +1,4 @@
-package poc.fwk.jpa.test.entities;
+package poc.fwk.logger.test.entities;
 
 import java.util.List;
 
@@ -21,7 +21,7 @@ public class PojoEntity {
 	private Integer id;
 
 	@ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-	private PojoEntityElement destEntry;
+	private PojoEntityElement element;
 
 	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	private List<PojoEntityEntry> entries;

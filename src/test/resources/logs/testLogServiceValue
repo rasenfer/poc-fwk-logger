@@ -1,0 +1,4 @@
+PojoEntity poc.fwk.logger.test.services.LoggerTestServiceImpl.returnValue()
+INPUT: []
+OUTPUT: {"id":1,"element":"PojoEntityElement(id=2, value=element)","entries":[PojoEntityEntry(id=3, value=entry)]}
+TIME:

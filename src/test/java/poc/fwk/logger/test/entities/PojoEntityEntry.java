@@ -1,4 +1,4 @@
-package poc.fwk.jpa.test.entities;
+package poc.fwk.logger.test.entities;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
