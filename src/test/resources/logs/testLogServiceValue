@@ -1,4 +1,0 @@
-PojoEntity poc.fwk.logger.test.LoggerTestComponent.returnValue()
-INPUT: []
-OUTPUT: {"id":1,"element":{"id":2,"value":"element"},"entries":[{"id":3,"value":"entry"}]}
-TIME:

@@ -1,0 +1,4 @@
+Object poc.fwk.logger.test.repositories.LoggerTestRepository.getOne(Serializable)
+INPUT: [Integer=1]
+OUTPUT: {"poc.fwk.logger.test.entities.PojoEntity":1}
+TIME:

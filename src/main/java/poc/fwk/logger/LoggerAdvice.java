@@ -10,9 +10,9 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
-import org.springframework.aop.aspectj.MethodInvocationProceedingJoinPoint;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ReflectionUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -68,37 +68,39 @@ public class LoggerAdvice {
 		return response;
 	}
 
-	protected void error(ProceedingJoinPoint joinPoint, Throwable t, long time) {
+	private void error(ProceedingJoinPoint joinPoint, Throwable t, long time) {
 		try {
-			Logger logger = LoggerFactory.getLogger(joinPoint.getTarget().getClass());
-			logger.error(getMessage(joinPoint, t.getClass().getName(), time), t);
+			Class<?> targetClass = getTargetClass(joinPoint);
+			Logger logger = LoggerFactory.getLogger(targetClass);
+			logger.error(getMessage(targetClass, joinPoint, t.getClass().getName(), time), t);
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
 		}
 	}
 
-	protected void log(ProceedingJoinPoint joinPoint, Object response, long time) {
+	private void log(ProceedingJoinPoint joinPoint, Object response, long time) {
 		try {
-			Logger logger = LoggerFactory.getLogger(joinPoint.getTarget().getClass());
+			Class<?> targetClass = getTargetClass(joinPoint);
+			Logger logger = LoggerFactory.getLogger(targetClass);
 			switch (level) {
 				case WARN:
 					if (logger.isWarnEnabled()) {
-						logger.warn(getMessage(joinPoint, response, time));
+						logger.warn(getMessage(targetClass, joinPoint, response, time));
 					}
 					break;
 				case INFO:
 					if (logger.isInfoEnabled()) {
-						logger.info(getMessage(joinPoint, response, time));
+						logger.info(getMessage(targetClass, joinPoint, response, time));
 					}
 					break;
 				case DEBUG:
 					if (logger.isDebugEnabled()) {
-						logger.debug(getMessage(joinPoint, response, time));
+						logger.debug(getMessage(targetClass, joinPoint, response, time));
 					}
 					break;
 				default:
 					if (logger.isTraceEnabled()) {
-						logger.trace(getMessage(joinPoint, response, time));
+						logger.trace(getMessage(targetClass, joinPoint, response, time));
 					}
 			}
 		} catch (Exception e) {
@@ -106,14 +108,34 @@ public class LoggerAdvice {
 		}
 	}
 
-	protected String getMessage(ProceedingJoinPoint joinPoint, Object response, long time) {
+	private Class<?> getTargetClass(ProceedingJoinPoint joinPoint) {
+		Class<?> targetClass = joinPoint.getTarget().getClass();
+		for (Class<?> targetInteface : joinPoint.getTarget().getClass().getInterfaces()) {
+			MethodSignature signature = MethodSignature.class.cast(joinPoint.getSignature());
+			Method targetMethod = ReflectionUtils.findMethod(targetInteface,
+					signature.getMethod().getName(), signature.getParameterTypes());
+			if (targetMethod != null) {
+				targetClass = targetInteface;
+				break;
+			}
+		}
+		return targetClass;
+	}
+
+	private String getMessage(Class<?> targetClass, ProceedingJoinPoint joinPoint, Object response, long time) {
 		MethodSignature signature = MethodSignature.class.cast(joinPoint.getSignature());
-		return String.format(MESSAGE, signature.toString(),
-				getInput(signature, MethodInvocationProceedingJoinPoint.class.cast(joinPoint)),
+		return String.format(MESSAGE, getSignature(targetClass, signature),
+				getInput(signature, joinPoint),
 				getOutput(signature, response), Duration.ofMillis(time).toString());
 	}
 
-	protected Object getInput(MethodSignature signature, MethodInvocationProceedingJoinPoint joinPoint) {
+	private String getSignature(Class<?> targetClass, MethodSignature signature) {
+		String signatureString = signature.toString();
+		signatureString = StringUtils.replace(signatureString, signature.getDeclaringTypeName(), targetClass.getName());
+		return signatureString;
+	}
+
+	private Object getInput(MethodSignature signature, ProceedingJoinPoint joinPoint) {
 		StringBuilder sb = new StringBuilder();
 		Object[] args = joinPoint.getArgs();
 		Object[] parameterNames = signature.getParameterNames();
@@ -122,7 +144,7 @@ public class LoggerAdvice {
 			sb.append(LIST_SPLIT);
 		}
 		for (int i = 0; i < args.length; i++) {
-			sb.append(parameterNames.length > i ? parameterNames[i] : args[i].getClass().getSimpleName());
+			sb.append(parameterNames != null && parameterNames.length > i ? parameterNames[i] : args[i].getClass().getSimpleName());
 			sb.append(VALUE_JOIN);
 			sb.append(toJsonStringObject(args[i]));
 			if (args.length - 1 < i) {
@@ -133,7 +155,7 @@ public class LoggerAdvice {
 		return sb.toString();
 	}
 
-	protected String getOutput(MethodSignature signature, Object response) {
+	private String getOutput(MethodSignature signature, Object response) {
 		String output;
 		Method method = signature.getMethod();
 		if (void.class.isAssignableFrom(method.getReturnType()) || Void.class.isAssignableFrom(method.getReturnType())) {
@@ -144,7 +166,7 @@ public class LoggerAdvice {
 		return output;
 	}
 
-	protected String toJsonStringObject(Object source) {
+	private String toJsonStringObject(Object source) {
 		String stringValue = null;
 		if (source != null) {
 			if (Closeable.class.isInstance(source)) {
@@ -154,7 +176,7 @@ public class LoggerAdvice {
 					stringValue = objectMapper.writeValueAsString(source);
 				} catch (JsonProcessingException e) {
 					stringValue = e.getMessage();
-					log.error(e.getMessage(), e);
+					log.error(e.getMessage());
 				}
 			}
 		} else {

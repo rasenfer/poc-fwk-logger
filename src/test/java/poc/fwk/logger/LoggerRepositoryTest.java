@@ -1,6 +1,5 @@
 package poc.fwk.logger;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.FileInputStream;
@@ -9,45 +8,37 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import org.apache.commons.io.IOUtils;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import poc.fwk.logger.test.LoggerTestBase;
-import poc.fwk.logger.test.LoggerTestComponent;
-import poc.fwk.logger.test.LoggerTestComponentAnnotatedMethod;
 import poc.fwk.logger.test.entities.PojoEntity;
 import poc.fwk.logger.test.entities.PojoEntityElement;
 import poc.fwk.logger.test.entities.PojoEntityEntry;
+import poc.fwk.logger.test.repositories.LoggerTestRepository;
 import poc.fwk.test.SpringTestContext;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = SpringTestContext.class, webEnvironment = WebEnvironment.NONE)
-public class LoggerTest extends LoggerTestBase {
+@EnableJpaRepositories(basePackages = "poc.fwk.**.repositories")
+@EntityScan(basePackages = "poc.fwk.**.entities")
+public class LoggerRepositoryTest extends LoggerTestBase {
 
 	@Autowired
-	private LoggerTestComponent loggerTestComponent;
+	private LoggerTestRepository loggerTestRepository;
 
-	@Autowired
-	private LoggerTestComponentAnnotatedMethod loggerTestServiceAnnotatedMethod;
+	@Override
+	@Before
+	public void setUp() throws IOException {
 
-	@Test
-	public void testLogServiceAnnotatedMethod() throws IOException {
-		loggerTestServiceAnnotatedMethod.returnVoid();
-		assertFalse(getLog().isEmpty());
-	}
-
-	@Test
-	public void testLogValue() throws IOException {
-		loggerTestComponent.returnValue();
-		assertLog("/logs/testLogValue");
-	}
-
-	@Test
-	public void testLogVoid() throws IOException {
 		PojoEntity pojoEntity = new PojoEntity();
 		pojoEntity.setId(1);
 
@@ -59,11 +50,26 @@ public class LoggerTest extends LoggerTestBase {
 		PojoEntityEntry entry = new PojoEntityEntry();
 		entry.setId(3);
 		entry.setValue("entry");
+		entry.setParent(pojoEntity);
 		pojoEntity.setEntries(Arrays.asList(entry));
 
-		loggerTestComponent.returnVoid(pojoEntity);
+		loggerTestRepository.save(pojoEntity);
 
-		assertLog("/logs/testLogVoid");
+		super.setUp();
+	}
+
+	@Test
+	@DirtiesContext
+	public void testLogGetOne() throws IOException {
+		loggerTestRepository.getOne(1);
+		assertLog("/logs/testLogGetOne");
+	}
+
+	@Test
+	@DirtiesContext
+	public void testLogFindAll() throws IOException {
+		loggerTestRepository.findAll();
+		assertLog("/logs/testLogFindAll");
 	}
 
 	private void assertLog(String logResult) throws IOException {

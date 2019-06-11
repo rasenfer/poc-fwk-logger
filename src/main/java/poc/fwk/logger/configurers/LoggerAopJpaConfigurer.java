@@ -22,7 +22,7 @@ public class LoggerAopJpaConfigurer extends LoggerAopBase {
 		super(loggerAdvice, autoLoggerEnabled);
 	}
 
-	@Around("within(org.springframework.data.repository.Repository)"
+	@Around("within(org.springframework.data.repository.Repository+)"
 			+ " && !@within(poc.fwk.logger.annotations.Logger)"
 			+ " && !@annotation(poc.fwk.logger.annotations.Logger)")
 	public Object interceptRepository(ProceedingJoinPoint joinPoint) throws Throwable {

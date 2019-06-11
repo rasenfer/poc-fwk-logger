@@ -25,5 +25,4 @@ public class PojoEntity {
 
 	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	private List<PojoEntityEntry> entries;
-
 }
