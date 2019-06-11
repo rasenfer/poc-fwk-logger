@@ -1,4 +1,4 @@
 void poc.fwk.logger.test.services.LoggerTestServiceImpl.returnVoid(PojoEntity)
-INPUT: [entity={"id":1,"element":"PojoEntityElement(id=2, value=element)","entries":[PojoEntityEntry(id=3, value=entry)]}]
+INPUT: [entity={"id":1,"element":{"id":2,"value":"element"},"entries":[{"id":3,"value":"entry"}]}]
 OUTPUT: void
 TIME:
