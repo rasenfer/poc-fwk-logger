@@ -1,4 +1,4 @@
-package poc.fwk.logger.configurers;
+package poc.fwk.logger;
 
 import java.io.Closeable;
 import java.lang.reflect.Method;
@@ -55,7 +55,7 @@ public class LoggerAdvice {
 		objectMapper.registerModule(hibernate5Module);
 	}
 
-	protected Object log(ProceedingJoinPoint joinPoint) throws Throwable {
+	public Object log(ProceedingJoinPoint joinPoint) throws Throwable {
 		long time = System.currentTimeMillis();
 		Object response;
 		try {

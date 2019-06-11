@@ -22,5 +22,5 @@ public @interface Logger {
 	/**
 	 * Enable or disable automatic loggin
 	 */
-	boolean enabled() default false;
+	boolean enabled() default true;
 }

@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import poc.fwk.logger.test.entities.PojoEntity;
 
 @Repository
-public interface PojoEntityRepository extends JpaRepository<PojoEntity, Integer> {
+public interface LoggerTestRepository extends JpaRepository<PojoEntity, Integer> {
 
 }

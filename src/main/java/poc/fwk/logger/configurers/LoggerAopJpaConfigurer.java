@@ -5,30 +5,27 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.repository.Repository;
+
+import poc.fwk.logger.LoggerAdvice;
 
 @Configuration
 @Aspect
-public class LoggerConfigurer extends LoggerBase {
+@ConditionalOnClass(Repository.class)
+public class LoggerAopJpaConfigurer extends LoggerAopBase {
 
 	@Autowired
-	public LoggerConfigurer(LoggerAdvice loggerAdvice,
+	public LoggerAopJpaConfigurer(LoggerAdvice loggerAdvice,
 			@Value("${poc.fwk.logger.auto.enabled:true}") boolean autoLoggerEnabled) {
 		super(loggerAdvice, autoLoggerEnabled);
 	}
 
-	@Override
-	@Around("@within(poc.fwk.logger.annotations.Logger) || @annotation(poc.fwk.logger.annotations.Logger)")
-	public Object interceptLoggin(ProceedingJoinPoint joinPoint) throws Throwable {
-		return super.interceptLoggin(joinPoint);
-	}
-
-	@Around("(@within(org.springframework.stereotype.Service)"
-			+ " || @within(org.springframework.stereotype.Controller)"
-			+ " || @within(org.springframework.web.bind.annotation.RestController))"
+	@Around("within(org.springframework.data.repository.Repository)"
 			+ " && !@within(poc.fwk.logger.annotations.Logger)"
 			+ " && !@annotation(poc.fwk.logger.annotations.Logger)")
-	public Object interceptService(ProceedingJoinPoint joinPoint) throws Throwable {
+	public Object interceptRepository(ProceedingJoinPoint joinPoint) throws Throwable {
 		return interceptJoinPoint(joinPoint);
 	}
 

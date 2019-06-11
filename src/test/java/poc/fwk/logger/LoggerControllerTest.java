@@ -1,10 +1,9 @@
 package poc.fwk.logger;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import java.io.IOException;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,13 +25,21 @@ public class LoggerControllerTest extends LoggerTestBase {
 	private MockMvc mockMvc;
 
 	@Test
-	public void testLogServiceValue() throws Exception {
-		mockMvc.perform(get("/")).andExpect(status().isOk());
-		assertLog();
+	public void testLogController() throws Exception {
+		mockMvc.perform(get("/logValue")).andExpect(status().isOk());
+		assertFalse(getLog().isEmpty());
 	}
 
-	private void assertLog() throws IOException {
-		assertFalse(getLog().isEmpty());
+	@Test
+	public void testLogControllerNoLogClass() throws Exception {
+		mockMvc.perform(get("/noLogClass")).andExpect(status().isOk());
+		assertTrue(getLog().isEmpty());
+	}
+
+	@Test
+	public void testLogControllerNoLogMethod() throws Exception {
+		mockMvc.perform(get("/noLogMethod")).andExpect(status().isOk());
+		assertTrue(getLog().isEmpty());
 	}
 
 }

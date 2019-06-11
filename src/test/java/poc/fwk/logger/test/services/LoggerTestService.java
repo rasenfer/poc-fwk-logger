@@ -1,11 +1,11 @@
 package poc.fwk.logger.test.services;
 
-import poc.fwk.logger.test.entities.PojoEntity;
+import org.springframework.stereotype.Service;
 
-public interface LoggerTestService {
+@Service
+public class LoggerTestService {
 
-	PojoEntity returnValue();
+	public void returnVoid() {
 
-	void returnVoid(PojoEntity entity);
-
+	}
 }

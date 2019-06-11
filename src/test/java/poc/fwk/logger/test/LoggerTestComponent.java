@@ -1,19 +1,20 @@
-package poc.fwk.logger.test.services;
+package poc.fwk.logger.test;
 
 import java.util.Arrays;
 
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
+import poc.fwk.logger.annotations.Logger;
 import poc.fwk.logger.test.entities.PojoEntity;
 import poc.fwk.logger.test.entities.PojoEntityElement;
 import poc.fwk.logger.test.entities.PojoEntityEntry;
 
-@Service
+@Component
+@Logger
 @RequiredArgsConstructor
-public class LoggerTestServiceImpl implements LoggerTestService {
+public class LoggerTestComponent {
 
-	@Override
 	public PojoEntity returnValue() {
 		PojoEntity pojoEntity = new PojoEntity();
 		pojoEntity.setId(1);
@@ -31,7 +32,6 @@ public class LoggerTestServiceImpl implements LoggerTestService {
 		return pojoEntity;
 	}
 
-	@Override
 	public void returnVoid(PojoEntity entity) {
 
 	}

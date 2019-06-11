@@ -11,10 +11,11 @@ import org.springframework.core.annotation.Order;
 
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import poc.fwk.logger.LoggerAdvice;
 
 @RequiredArgsConstructor
 @Order(Integer.MAX_VALUE)
-public abstract class LoggerBase implements ApplicationContextAware {
+public abstract class LoggerAopBase implements ApplicationContextAware {
 
 	private final LoggerAdvice loggerAdvice;
 
