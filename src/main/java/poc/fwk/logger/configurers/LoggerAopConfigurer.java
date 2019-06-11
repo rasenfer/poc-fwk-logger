@@ -26,8 +26,7 @@ public class LoggerAopConfigurer extends LoggerAopBase {
 	}
 
 	@Around("(@within(org.springframework.stereotype.Service)"
-			+ " || @within(org.springframework.stereotype.Controller)"
-			+ " || @within(org.springframework.web.bind.annotation.RestController))"
+			+ " || @within(org.springframework.stereotype.Controller))"
 			+ " && !@within(poc.fwk.logger.annotations.Logger)"
 			+ " && !@annotation(poc.fwk.logger.annotations.Logger)")
 	public Object interceptService(ProceedingJoinPoint joinPoint) throws Throwable {

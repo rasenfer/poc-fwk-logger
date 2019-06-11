@@ -11,8 +11,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.web.context.request.RequestContextHolder;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,11 +27,13 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-public class LoggerAdvice {
+public class LoggerAdvice implements ApplicationContextAware {
 
 	private final Level level;
 
-	private static final String MESSAGE = "%s\nINPUT: %s\nOUTPUT: %s\nTIME: %s";
+	private static final String MESSAGE = "%s\n%sINPUT: %s\nOUTPUT: %s\nTIME: %s";
+
+	private static final String SESSION_ID_MESSAGE = "SESSION_ID: %s\n";
 
 	private static final String LIST_OPEN = "[";
 
@@ -41,6 +46,8 @@ public class LoggerAdvice {
 	private static final String VALUE_SPLIT = ",\n";
 
 	private final ObjectMapper objectMapper;
+
+	private boolean isWebEnvironment = false;
 
 	public LoggerAdvice(@Value("${poc.fwk.logger.auto.level:info}") String level) {
 		this.level = Level.valueOf(level.toUpperCase());
@@ -125,8 +132,10 @@ public class LoggerAdvice {
 	private String getMessage(Class<?> targetClass, ProceedingJoinPoint joinPoint, Object response, long time) {
 		MethodSignature signature = MethodSignature.class.cast(joinPoint.getSignature());
 		return String.format(MESSAGE, getSignature(targetClass, signature),
+				getSessionId(),
 				getInput(signature, joinPoint),
-				getOutput(signature, response), Duration.ofMillis(time).toString());
+				getOutput(signature, response),
+				Duration.ofMillis(time).toString());
 	}
 
 	private String getSignature(Class<?> targetClass, MethodSignature signature) {
@@ -166,6 +175,14 @@ public class LoggerAdvice {
 		return output;
 	}
 
+	private String getSessionId() {
+		if (isWebEnvironment && RequestContextHolder.getRequestAttributes() != null) {
+			return String.format(SESSION_ID_MESSAGE, RequestContextHolder.getRequestAttributes().getSessionId());
+		} else {
+			return StringUtils.EMPTY;
+		}
+	}
+
 	private String toJsonStringObject(Object source) {
 		String stringValue = null;
 		if (source != null) {
@@ -183,6 +200,11 @@ public class LoggerAdvice {
 			stringValue = String.valueOf(null);
 		}
 		return stringValue;
+	}
+
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) {
+		isWebEnvironment = StringUtils.containsIgnoreCase(applicationContext.getClass().getName(), "web");
 	}
 
 }
