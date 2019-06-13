@@ -25,7 +25,8 @@ import poc.fwk.logger.test.entities.PojoEntityEntry;
 import poc.fwk.test.SpringTestContext;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = SpringTestContext.class, webEnvironment = WebEnvironment.NONE)
+@SpringBootTest(classes = SpringTestContext.class, webEnvironment = WebEnvironment.NONE,
+		properties = "poc.fwk.logger.auto.level=debug")
 public class LoggerTest extends LoggerTestBase {
 
 	@Autowired
@@ -64,6 +65,36 @@ public class LoggerTest extends LoggerTestBase {
 		loggerTestComponent.returnVoid(pojoEntity);
 
 		assertLog("/logs/testLogVoid");
+	}
+
+	@Test
+	public void testLogInputStream() throws IOException {
+		loggerTestComponent.returnInputStream();
+		assertFalse(getLog().isEmpty());
+	}
+
+	@Test
+	public void testLogOutputStream() throws IOException {
+		loggerTestComponent.returnOutputStream();
+		assertFalse(getLog().isEmpty());
+	}
+
+	@Test
+	public void testLogByteArray() throws Exception {
+		loggerTestComponent.returnByteArray();
+		assertFalse(getLog().isEmpty());
+	}
+
+	@Test
+	public void testLogControllerResponse() throws Exception {
+		loggerTestComponent.returnValueResponse();
+		assertFalse(getLog().isEmpty());
+	}
+
+	@Test
+	public void testLogByteArrayResponse() throws Exception {
+		loggerTestComponent.returnByteArrayResponse();
+		assertFalse(getLog().isEmpty());
 	}
 
 	private void assertLog(String logResult) throws IOException {

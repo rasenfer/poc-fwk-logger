@@ -7,4 +7,4 @@ spring:
 logging:
    file: target/test-classes/logs/poc-fwk-logger.log
    level:
-      org.hibernate.type: trace
+      poc.fwk: debug

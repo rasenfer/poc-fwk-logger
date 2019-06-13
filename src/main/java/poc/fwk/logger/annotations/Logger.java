@@ -23,4 +23,9 @@ public @interface Logger {
 	 * Enable or disable automatic loggin
 	 */
 	boolean enabled() default true;
+
+	/**
+	 * Logging level for annotation
+	 */
+	String level() default "";
 }

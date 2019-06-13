@@ -27,7 +27,8 @@ import poc.fwk.logger.test.repositories.LoggerTestRepository;
 import poc.fwk.test.SpringTestContext;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = SpringTestContext.class, webEnvironment = WebEnvironment.NONE)
+@SpringBootTest(classes = SpringTestContext.class, webEnvironment = WebEnvironment.NONE,
+		properties = "poc.fwk.logger.repository.level=debug")
 @EnableJpaRepositories(basePackages = "poc.fwk.**.repositories")
 @EntityScan(basePackages = "poc.fwk.**.entities")
 public class LoggerRepositoryTest extends LoggerTestBase {

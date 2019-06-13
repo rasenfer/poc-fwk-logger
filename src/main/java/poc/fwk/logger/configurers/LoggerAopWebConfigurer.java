@@ -9,20 +9,20 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.annotation.RestController;
 
-import poc.fwk.logger.LoggerAdvice;
-
 @Configuration
 @Aspect
 @ConditionalOnClass(RestController.class)
 public class LoggerAopWebConfigurer extends LoggerAopBase {
 
 	@Autowired
-	public LoggerAopWebConfigurer(LoggerAdvice loggerAdvice,
-			@Value("${poc.fwk.logger.auto.enabled:true}") boolean autoLoggerEnabled) {
-		super(loggerAdvice, autoLoggerEnabled);
+	public LoggerAopWebConfigurer(
+			@Value("${poc.fwk.logger.controller.enabled:#{null}}") Boolean loggerControllerEnabled,
+			@Value("${poc.fwk.logger.controller.level:#{null}}") String loggerControllerLevel) {
+		super(loggerControllerEnabled, loggerControllerLevel);
 	}
 
-	@Around("@within(org.springframework.web.bind.annotation.RestController)"
+	@Around("(@within(org.springframework.web.bind.annotation.RestController)"
+			+ "|| @within(org.springframework.stereotype.Controller))"
 			+ " && !@within(poc.fwk.logger.annotations.Logger)"
 			+ " && !@annotation(poc.fwk.logger.annotations.Logger)")
 	public Object interceptController(ProceedingJoinPoint joinPoint) throws Throwable {

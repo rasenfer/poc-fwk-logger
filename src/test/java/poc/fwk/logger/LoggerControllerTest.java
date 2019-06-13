@@ -1,10 +1,14 @@
 package poc.fwk.logger;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +21,8 @@ import poc.fwk.logger.test.LoggerTestBase;
 import poc.fwk.test.SpringTestContext;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = SpringTestContext.class)
+@SpringBootTest(classes = SpringTestContext.class,
+		properties = "poc.fwk.logger.controller.level=debug")
 @AutoConfigureMockMvc
 public class LoggerControllerTest extends LoggerTestBase {
 
@@ -26,8 +31,8 @@ public class LoggerControllerTest extends LoggerTestBase {
 
 	@Test
 	public void testLogController() throws Exception {
-		mockMvc.perform(get("/logValue")).andExpect(status().isOk());
-		assertFalse(getLog().isEmpty());
+		mockMvc.perform(get("/logValue?languaje=es")).andExpect(status().isOk());
+		assertLog("/logs/testLogValueResponse");
 	}
 
 	@Test
@@ -42,4 +47,10 @@ public class LoggerControllerTest extends LoggerTestBase {
 		assertTrue(getLog().isEmpty());
 	}
 
+	private void assertLog(String logResult) throws IOException {
+		String log = getLog();
+		IOUtils.readLines(new FileInputStream(IOUtils.resourceToURL(logResult).getFile()),
+				StandardCharsets.UTF_8)
+				.forEach(line -> assertTrue("NOT PRESENT: " + line, log.contains(line)));
+	}
 }

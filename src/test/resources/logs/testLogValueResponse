@@ -1,0 +1,6 @@
+SESSION_ID:
+REQUEST: [GET] /logValue?languaje=es
+CALL: String poc.fwk.logger.test.controller.LoggerTestController.logValue()
+INPUT: []
+OUTPUT: ""
+TIME:

@@ -1,7 +1,12 @@
 package poc.fwk.logger.test;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 
+import org.mockito.Mockito;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
@@ -34,5 +39,25 @@ public class LoggerTestComponent {
 
 	public void returnVoid(PojoEntity entity) {
 
+	}
+
+	public InputStream returnInputStream() {
+		return Mockito.mock(InputStream.class);
+	}
+
+	public OutputStream returnOutputStream() {
+		return Mockito.mock(OutputStream.class);
+	}
+
+	public byte[] returnByteArray() {
+		return new byte[] { 1, 2, 3, 4, 5 };
+	}
+
+	public ResponseEntity<String> returnValueResponse() {
+		return new ResponseEntity<>(new String(), HttpStatus.OK);
+	}
+
+	public ResponseEntity<byte[]> returnByteArrayResponse() {
+		return new ResponseEntity<>(new byte[] { 1, 2, 3, 4, 5 }, HttpStatus.OK);
 	}
 }

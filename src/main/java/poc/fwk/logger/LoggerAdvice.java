@@ -4,18 +4,24 @@ import java.io.Closeable;
 import java.lang.reflect.Method;
 import java.time.Duration;
 
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,11 +35,13 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class LoggerAdvice implements ApplicationContextAware {
 
-	private final Level level;
+	private static final String MESSAGE_INFO = "%sCALL: %s TIME: %s";
 
-	private static final String MESSAGE = "%s\n%sINPUT: %s\nOUTPUT: %s\nTIME: %s";
+	private static final String MESSAGE_DEBUG = "\n%sCALL: %s\nINPUT: %s\nOUTPUT: %s\nTIME: %s";
 
-	private static final String SESSION_ID_MESSAGE = "SESSION_ID: %s\n";
+	private static final String SESSION_ID_MESSAGE = "SESSION_ID: %s ";
+
+	private static final String REQUEST_MESSAGE = "REQUEST: [%s] %s ";
 
 	private static final String LIST_OPEN = "[";
 
@@ -49,8 +57,7 @@ public class LoggerAdvice implements ApplicationContextAware {
 
 	private boolean isWebEnvironment = false;
 
-	public LoggerAdvice(@Value("${poc.fwk.logger.auto.level:info}") String level) {
-		this.level = Level.valueOf(level.toUpperCase());
+	public LoggerAdvice() {
 		objectMapper = new ObjectMapper();
 		objectMapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
 		objectMapper.disable(SerializationFeature.FAIL_ON_SELF_REFERENCES);
@@ -62,52 +69,37 @@ public class LoggerAdvice implements ApplicationContextAware {
 		objectMapper.registerModule(hibernate5Module);
 	}
 
-	public Object log(ProceedingJoinPoint joinPoint) throws Throwable {
+	public Object log(ProceedingJoinPoint joinPoint, Level level) throws Throwable {
 		long time = System.currentTimeMillis();
 		Object response;
 		try {
 			response = joinPoint.proceed();
-			log(joinPoint, response, System.currentTimeMillis() - time);
+			log(joinPoint, response, System.currentTimeMillis() - time, level);
 		} catch (Throwable t) {
-			error(joinPoint, t, time);
+			log(joinPoint, t.getClass().getName(), time, level);
 			throw t;
 		}
 		return response;
 	}
 
-	private void error(ProceedingJoinPoint joinPoint, Throwable t, long time) {
-		try {
-			Class<?> targetClass = getTargetClass(joinPoint);
-			Logger logger = LoggerFactory.getLogger(targetClass);
-			logger.error(getMessage(targetClass, joinPoint, t.getClass().getName(), time), t);
-		} catch (Exception e) {
-			log.error(e.getMessage(), e);
-		}
-	}
-
-	private void log(ProceedingJoinPoint joinPoint, Object response, long time) {
+	private void log(ProceedingJoinPoint joinPoint, Object response, long time, Level level) {
 		try {
 			Class<?> targetClass = getTargetClass(joinPoint);
 			Logger logger = LoggerFactory.getLogger(targetClass);
 			switch (level) {
-				case WARN:
-					if (logger.isWarnEnabled()) {
-						logger.warn(getMessage(targetClass, joinPoint, response, time));
-					}
-					break;
 				case INFO:
 					if (logger.isInfoEnabled()) {
-						logger.info(getMessage(targetClass, joinPoint, response, time));
+						logger.info(getMessage(targetClass, joinPoint, response, time, level));
 					}
 					break;
 				case DEBUG:
 					if (logger.isDebugEnabled()) {
-						logger.debug(getMessage(targetClass, joinPoint, response, time));
+						logger.debug(getMessage(targetClass, joinPoint, response, time, level));
 					}
 					break;
 				default:
 					if (logger.isTraceEnabled()) {
-						logger.trace(getMessage(targetClass, joinPoint, response, time));
+						logger.trace(getMessage(targetClass, joinPoint, response, time, level));
 					}
 			}
 		} catch (Exception e) {
@@ -129,13 +121,19 @@ public class LoggerAdvice implements ApplicationContextAware {
 		return targetClass;
 	}
 
-	private String getMessage(Class<?> targetClass, ProceedingJoinPoint joinPoint, Object response, long time) {
+	private String getMessage(Class<?> targetClass, ProceedingJoinPoint joinPoint, Object response, long time, Level level) {
 		MethodSignature signature = MethodSignature.class.cast(joinPoint.getSignature());
-		return String.format(MESSAGE, getSignature(targetClass, signature),
-				getSessionId(),
-				getInput(signature, joinPoint),
-				getOutput(signature, response),
-				Duration.ofMillis(time).toString());
+		if (Level.INFO.equals(level)) {
+			return String.format(MESSAGE_INFO, getRequestMessage(level),
+					getSignature(targetClass, signature),
+					Duration.ofMillis(time).toString());
+		} else {
+			return String.format(MESSAGE_DEBUG, getRequestMessage(level),
+					getSignature(targetClass, signature),
+					getInput(signature, joinPoint),
+					getOutput(signature, response),
+					Duration.ofMillis(time).toString());
+		}
 	}
 
 	private String getSignature(Class<?> targetClass, MethodSignature signature) {
@@ -155,7 +153,7 @@ public class LoggerAdvice implements ApplicationContextAware {
 		for (int i = 0; i < args.length; i++) {
 			sb.append(parameterNames != null && parameterNames.length > i ? parameterNames[i] : args[i].getClass().getSimpleName());
 			sb.append(VALUE_JOIN);
-			sb.append(toJsonStringObject(args[i]));
+			sb.append(toJsonStringValue(args[i]));
 			if (args.length - 1 < i) {
 				sb.append(VALUE_SPLIT);
 			}
@@ -170,31 +168,56 @@ public class LoggerAdvice implements ApplicationContextAware {
 		if (void.class.isAssignableFrom(method.getReturnType()) || Void.class.isAssignableFrom(method.getReturnType())) {
 			output = method.getReturnType().getSimpleName();
 		} else {
-			output = toJsonStringObject(response);
+			output = toJsonStringValue(response);
 		}
 		return output;
 	}
 
-	private String getSessionId() {
+	private String getRequestMessage(Level level) {
 		if (isWebEnvironment && RequestContextHolder.getRequestAttributes() != null) {
-			return String.format(SESSION_ID_MESSAGE, RequestContextHolder.getRequestAttributes().getSessionId());
+			ServletRequestAttributes attributes = ServletRequestAttributes.class.cast(RequestContextHolder.getRequestAttributes());
+			HttpServletRequest request = attributes.getRequest();
+			return String.format(
+					Level.INFO.equals(level) ? SESSION_ID_MESSAGE + REQUEST_MESSAGE : SESSION_ID_MESSAGE + StringUtils.LF + REQUEST_MESSAGE + StringUtils.LF,
+					attributes.getSessionId(),
+					request.getMethod(),
+					StringUtils.isNotEmpty(request.getQueryString()) ? request.getRequestURI() + "?" + request.getQueryString() : request.getRequestURI());
 		} else {
 			return StringUtils.EMPTY;
 		}
 	}
 
-	private String toJsonStringObject(Object source) {
+	private String toJsonStringValue(Object value) {
 		String stringValue = null;
-		if (source != null) {
-			if (Closeable.class.isInstance(source)) {
-				stringValue = source.getClass().getSimpleName();
+		if (value != null) {
+			if (byte[].class.isInstance(value) || Closeable.class.isInstance(value)
+					|| isWebEnvironment && (HttpSession.class.isInstance(value)
+							|| ServletRequest.class.isInstance(value)
+							|| ServletResponse.class.isInstance(value))) {
+				stringValue = value.getClass().getSimpleName();
+			} else if (isWebEnvironment && ResponseEntity.class.isInstance(value)) {
+				ResponseEntity<?> responseEntity = ResponseEntity.class.cast(value);
+				stringValue = toJsonStringObjetc(
+						new ResponseEntity<>(toJsonStringValue(responseEntity.getBody()),
+								responseEntity.getHeaders(),
+								responseEntity.getStatusCode()));
 			} else {
-				try {
-					stringValue = objectMapper.writeValueAsString(source);
-				} catch (JsonProcessingException e) {
-					stringValue = e.getMessage();
-					log.error(e.getMessage());
-				}
+				stringValue = toJsonStringObjetc(value);
+			}
+		} else {
+			stringValue = String.valueOf(null);
+		}
+		return stringValue;
+	}
+
+	private String toJsonStringObjetc(Object value) {
+		String stringValue = null;
+		if (value != null) {
+			try {
+				stringValue = objectMapper.writeValueAsString(value);
+			} catch (JsonProcessingException e) {
+				stringValue = e.getMessage();
+				log.error(e.getMessage());
 			}
 		} else {
 			stringValue = String.valueOf(null);
