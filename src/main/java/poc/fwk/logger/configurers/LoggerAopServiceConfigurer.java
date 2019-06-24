@@ -3,6 +3,7 @@ package poc.fwk.logger.configurers;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -18,9 +19,12 @@ public class LoggerAopServiceConfigurer extends LoggerAopBase {
 		super(loggerServiceEnabled, loggerServiceLevel);
 	}
 
-	@Around("@within(org.springframework.stereotype.Service)"
-			+ " && !@within(poc.fwk.logger.annotations.Logger)"
-			+ " && !@annotation(poc.fwk.logger.annotations.Logger)")
+	@Pointcut("@within(org.springframework.stereotype.Service)")
+	public void service() {
+		// Method is empty as this is just a Pointcut, the implementations are in the advices.
+	}
+
+	@Around("service() && !annotatedLogger()")
 	public Object interceptService(ProceedingJoinPoint joinPoint) throws Throwable {
 		return interceptJoinPoint(joinPoint);
 	}

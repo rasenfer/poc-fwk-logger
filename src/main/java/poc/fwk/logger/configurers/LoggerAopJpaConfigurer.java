@@ -3,6 +3,7 @@ package poc.fwk.logger.configurers;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -21,9 +22,12 @@ public class LoggerAopJpaConfigurer extends LoggerAopBase {
 		super(loggerRepositoryEnabled, loggerRepositoryLevel);
 	}
 
-	@Around("within(org.springframework.data.repository.Repository+)"
-			+ " && !@within(poc.fwk.logger.annotations.Logger)"
-			+ " && !@annotation(poc.fwk.logger.annotations.Logger)")
+	@Pointcut("within(org.springframework.data.repository.Repository+)")
+	public void repository() {
+		// Method is empty as this is just a Pointcut, the implementations are in the advices.
+	}
+
+	@Around("repository() && !annotatedLogger()")
 	public Object interceptRepository(ProceedingJoinPoint joinPoint) throws Throwable {
 		return interceptJoinPoint(joinPoint);
 	}

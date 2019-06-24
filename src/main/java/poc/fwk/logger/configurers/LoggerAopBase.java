@@ -7,6 +7,7 @@ import javax.annotation.PostConstruct;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +41,7 @@ public abstract class LoggerAopBase implements ApplicationContextAware {
 
 	private Level level;
 
-	protected LoggerAopBase() {
+	public LoggerAopBase() {
 		loggerCurrentAspectEnabled = null;
 		levelCurrentAspect = null;
 	}
@@ -56,7 +57,12 @@ public abstract class LoggerAopBase implements ApplicationContextAware {
 		level = Level.valueOf(ObjectUtils.defaultIfNull(levelCurrentAspect, levelValue).toUpperCase());
 	}
 
-	protected Object interceptLoggin(ProceedingJoinPoint joinPoint) throws Throwable {
+	@Pointcut("@within(poc.fwk.logger.annotations.Logger) || @annotation(poc.fwk.logger.annotations.Logger)")
+	public void annotatedLogger() {
+		// Method is empty as this is just a Pointcut, the implementations are in the advices.
+	}
+
+	protected Object log(ProceedingJoinPoint joinPoint) throws Throwable {
 		poc.fwk.logger.annotations.Logger logger = AnnotationUtils.findAnnotation(joinPoint.getTarget().getClass(),
 				poc.fwk.logger.annotations.Logger.class);
 		if (logger == null) {

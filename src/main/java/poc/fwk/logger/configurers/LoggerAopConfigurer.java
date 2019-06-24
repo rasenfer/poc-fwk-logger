@@ -9,10 +9,9 @@ import org.springframework.context.annotation.Configuration;
 @Aspect
 public class LoggerAopConfigurer extends LoggerAopBase {
 
-	@Override
-	@Around("@within(poc.fwk.logger.annotations.Logger) || @annotation(poc.fwk.logger.annotations.Logger)")
-	public Object interceptLoggin(ProceedingJoinPoint joinPoint) throws Throwable {
-		return super.interceptLoggin(joinPoint);
+	@Around("annotatedLogger()")
+	public Object interceptLogger(ProceedingJoinPoint joinPoint) throws Throwable {
+		return log(joinPoint);
 	}
 
 }
