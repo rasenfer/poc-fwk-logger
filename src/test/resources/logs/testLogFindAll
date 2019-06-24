@@ -1,4 +1,4 @@
 List poc.fwk.logger.test.repositories.LoggerTestRepository.findAll()
 INPUT: []
-OUTPUT: [{"id":1,"element":{"poc.fwk.logger.test.entities.PojoEntityElement":1},"entries":null}]
+OUTPUT: [{"id":2,"element":{"id":1},"entries":null}]
 TIME:
