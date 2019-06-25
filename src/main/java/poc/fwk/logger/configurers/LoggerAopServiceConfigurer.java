@@ -6,10 +6,12 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnSingleCandidate;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @Aspect
+@ConditionalOnSingleCandidate(LoggerAopServiceConfigurer.class)
 public class LoggerAopServiceConfigurer extends LoggerAopBase {
 
 	@Autowired

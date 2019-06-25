@@ -7,11 +7,13 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnSingleCandidate;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.annotation.RestController;
 
 @Configuration
 @Aspect
+@ConditionalOnSingleCandidate(LoggerAopWebConfigurer.class)
 @ConditionalOnClass(RestController.class)
 public class LoggerAopWebConfigurer extends LoggerAopBase {
 
